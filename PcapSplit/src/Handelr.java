@@ -1,16 +1,15 @@
 import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.nio.channels.FileChannel;
+import java.util.HashMap;
+import java.util.Map;
 
 public class Handelr {
 
-	
+
 	private File pcapFile;
 	private FileInputStream fi;
 	private DataInputStream di ;
@@ -18,98 +17,114 @@ public class Handelr {
 
 
 	private byte [] pcapHeader;
-	private byte [] packetHeader;
-	private byte [] packetData;
-	private int[] packetTime;
+
 	private boolean isBigIndean;
 	private String outDiractory;
+	private Map<String, Session> mapOfSessions;
+	private Session sessionNotProcesset;
+	private int sessionCounter = 0;
+	private long timeOut;
 
-	public Handelr(String inputFilePath ,String outDiractory) throws FileNotFoundException {
+	public Handelr(String inputFilePath ,String outDiractory) throws Exception {
 
+		
 		pcapFile = new File(inputFilePath);
+		if (! pcapFile.isFile() || ! pcapFile.canRead()){
+			throw new Exception("file not found or the file cannot be read ");
+		}
 		//TODO add file check
 
-		this.fi = new FileInputStream(pcapFile);
-		this.di = new DataInputStream(fi);
-		this.pcapHeader = new byte[24];
-		this.packetHeader = new byte[16];
-		this.packetData = new byte[67000];
-		this.packetTime = new int[2];
+		fi = new FileInputStream(pcapFile);
+		di = new DataInputStream(fi);
+		pcapHeader = new byte[24];
+
 		this.outDiractory = outDiractory;
+
+		mapOfSessions = new HashMap<String, Session>();
 	}
 
+	public void analyze(long timeOut) throws Exception {
+		this.timeOut = timeOut;
+		di.read(pcapHeader);		
+		sessionCounter++;
+		sessionNotProcesset = new Session(outDiractory,pcapHeader,sessionCounter);
 
-	public void analyze() throws Exception {
-
-		this.di.read(pcapHeader);
-		this.pcapByteBuffer = ByteBuffer.wrap(pcapHeader, 0 , 24);
+		pcapByteBuffer = ByteBuffer.wrap(pcapHeader);
 		int magic = pcapByteBuffer.getInt();
-		
-// get the type if its BIG_ENDIAN or LITTLE_ENDIAN
+
+		// get the type if its BIG_ENDIAN or LITTLE_ENDIAN
 		if(magic == 0xa1b2c3d4) {
-			this.isBigIndean =true;
+			isBigIndean =true;
 		}else if(magic == 0xd4c3b2a1) {
-			this.isBigIndean =false;
+			isBigIndean =false;
 		}else {
 			throw new Exception("NOT A PCAP FILE");
 		}
 
-//		String x= String.format("%x", magic);
-//		System.out.println(isBigIndean +"  "+String.valueOf(magic) +"   "+ x);
+		setByteOrder(pcapByteBuffer);
+		int linkProtocol = pcapByteBuffer.getInt(20); // go to the protocol specification 
 
-		//TODO add the bigEndian and little endian 
-		
-		readByteOrder(pcapByteBuffer);
-		String x2= String.format("%x", magic);
-		System.out.println(isBigIndean +"  "+String.valueOf(magic) +"   "+ x2);
-		int linkProtocol = this.pcapByteBuffer.getInt(20); // go to the protocol specification 
-		String linkProtocol111= String.format("%x", linkProtocol);
-		System.out.println(isBigIndean +"  "+String.valueOf(linkProtocol) +"   "+ linkProtocol111);
-
-//if its not 0x1 its not ETHERNET II
+		//if its not 0x1 its not ETHERNET II
 		if(linkProtocol != 0x1) {
-			throw new Exception("The protocol is no ETHERNET II");
+			throw new Exception("The protocol is not ETHERNET II");
 		}
 
-		File outputFile = new File(outDiractory);
-		FileOutputStream fo = new FileOutputStream(outputFile);
-		DataOutputStream os = new DataOutputStream(fo);
-		
-		os.write(pcapHeader);
-		int counter = 0;
-		
-		while(this.di.available()>0) {
-			this.di.read(packetHeader);
-			this.pcapByteBuffer = ByteBuffer.wrap(packetHeader);
+		byte [] packetHeader = new byte[16];
+		byte [] packetData = new byte[67000];
 
-			readByteOrder(pcapByteBuffer);
+		while(di.available()>0) {
+			//check if the header is full
+			if(di.available() < packetHeader.length) {
+				break;
+			}
 
-			//			int x1 = packetHeaderBuffer.getInt();
-			//			String xx1= String.format("%x", x1);
-			//			System.out.println(isBigIndean +"  "+String.valueOf(x1) +"   "+ xx1);
-			packetTime[0] = pcapByteBuffer.getInt();
-			packetTime[1] = pcapByteBuffer.getInt(4);
-			
-			System.out.println(packetTime[0]);
-			System.out.println(packetTime[1]);
-			int k =0 ;
+			di.read(packetHeader);
+
+			pcapByteBuffer = ByteBuffer.wrap(packetHeader);
+			setByteOrder(pcapByteBuffer);
 			int dataSize = pcapByteBuffer.getInt(8);
-			os.write(packetHeader, 0, 16);
-			
-			this.di.read(packetData,0,dataSize);
 
-			this.pcapByteBuffer = ByteBuffer.wrap(packetData, 0, dataSize);
-			analyze(packetData,dataSize,packetTime);
-		//	readByteOrder(pcapByteBuffer);
-			os.write(packetData, 0, dataSize);
+			if(di.available() < dataSize) {
+				break;
+			}
+			di.read(packetData,0,dataSize);
 
-			System.out.println("packet number: "+counter++ +" the size of the captuerd data is: "+dataSize);
+			handlePacket(packetHeader,packetData,isBigIndean);
 		}
-		os.close();
+		for(Map.Entry<String, Session> entry: mapOfSessions.entrySet()) {
+			Session session = entry.getValue();
+			if(!session.isClosed()) {
 
+				session.close(); 
+			}
+		}
+	} 
+
+	private void handlePacket(byte[] packetHeader, byte[] packetData, boolean isBigIndean) throws IOException {
+
+		Packet packet = new Packet(packetHeader,packetData,isBigIndean);
+		if(packet.isAnalyzeable()) {
+			String key1 = packet.getPacketKey1();
+			String key2 = packet.getPacketKey2();
+			Session session = mapOfSessions.get(key1);
+			if(session == null) {
+				try {
+					sessionCounter++;
+					session = new Session(outDiractory, pcapHeader,sessionCounter);
+				} catch (IOException e) {
+
+				}
+				mapOfSessions.put(key1, session);
+				mapOfSessions.put(key2, session);
+			}else {
+				session.addPacket(packet);
+			}
+		}else {
+			sessionNotProcesset.addPacket(packet);
+		}
 	}
 
-	private void readByteOrder(ByteBuffer bb) {
+	private void setByteOrder(ByteBuffer bb) {
 		if(isBigIndean) {
 			bb.order(ByteOrder.BIG_ENDIAN);
 		}else {
@@ -117,9 +132,8 @@ public class Handelr {
 		}
 	}
 	
-	private void analyze(byte [] data , int dataSize , int [] time ) {
-		
+	public void closeFile() throws IOException {
+		di.close();
 	}
-
 
 }
