@@ -9,19 +9,11 @@ public class Main {
 				
 		
 		Handelr pcaphandler = new Handelr(inputFilePath, outDiractory); 
-		long timeOut = (long) 1e10 ;
+		long timeOut = (long) 4000 ;
 		pcaphandler.analyze(timeOut);
 		pcaphandler.closeFile();
 		 
-		//write the csv file
-
-		//	AnalyzePcap analyzer;
-
 
 	}
-	
-	
-
-
 
 }

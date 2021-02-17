@@ -1,5 +1,6 @@
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.time.Instant;
 
 public class Packet {
 
@@ -12,12 +13,16 @@ public class Packet {
 	private byte[] data;
 	private ByteBuffer pcapByteBuffer;
 	private int dataSize;
-	private long timeStamp;
+
+	private Instant instantPacketTime;
+
+	private String key1;
+	private String key2;
 
 	private String srcIp;
 	private String dstIp;
-	private int srcPort;
-	private int dstPort;
+	private String srcPort;
+	private String dstPort;
 	private String protocol;
 
 	public Packet(byte[] header, byte[] data, boolean isBigEndian){	
@@ -25,8 +30,13 @@ public class Packet {
 		this.header =header;
 		this.data = data;
 		isAnalyzable = true;
-		setValuesFromData(); 
+		setValuesFromData();
+		if(isAnalyzable) {
+			key1 = protocol+srcIp+dstIp+srcPort+dstPort;
+			key2 = protocol+dstIp+srcIp+dstPort+srcPort;
+		}
 	}
+
 
 	private void setValuesFromData() {
 		pcapByteBuffer = ByteBuffer.wrap(this.header);
@@ -36,70 +46,66 @@ public class Packet {
 		}else {
 			pcapByteBuffer.order(ByteOrder.LITTLE_ENDIAN);
 		}
-		timeStamp = pcapByteBuffer.getInt(0);
-		timeStamp *= 1e6;
-		timeStamp += pcapByteBuffer.getInt(1);
+		long timeSeconds = pcapByteBuffer.getInt(0);
+		long timeMicro = pcapByteBuffer.getInt(4)& 0xffffffff;
+		instantPacketTime = Instant.ofEpochSecond( timeSeconds , timeMicro );
 		//get the size of data 
 		this.dataSize = pcapByteBuffer.getInt(8);
 		this.pcapByteBuffer = ByteBuffer.wrap(data, 0, dataSize);
-
 		//get the ip protocol type
 		int ipProtocolType = pcapByteBuffer.getShort(12) & 0xffff;
-		//	ipProtocolType = (short) (ipProtocolType & 0xffff);
-
-		//		if(setProtocolType(ipProtocolType) != null) {
-		//
-		//		}
-
-		setProtocolType(ipProtocolType);
-		//	System.out.println(protocol);
-
+		int ipHeaderSize = setProtocolType(ipProtocolType);
+		//if the protocol is not TCP or UDP return and stop analyzing
+		if(ipHeaderSize == -1) {
+			return;
+		}
+		setPorts(ipHeaderSize);
 	}
 
+	private void setPorts(int ipHeaderSize) {
+		srcPort = String.valueOf(pcapByteBuffer.getShort(14+ipHeaderSize) & 0xffff);
+		dstPort = String.valueOf(pcapByteBuffer.getShort(16+ipHeaderSize) & 0xffff);
+	}
 
-	private String setProtocolType(int ipProtocolType) {
+	//analyze the ip layer and return the ip layer header size
+	private int setProtocolType(int ipProtocolType) {
 		if(ipProtocolType == IPV4) {
-			handelIPV4();
-			return "IPV4";
-		}else if(ipProtocolType == IPV6) {
-			handelIPV6();
-			return "IPV6";
+			return handelIPV4();
+		}else if(ipProtocolType == IPV6) {		
+			return handelIPV6();
 		}else {
 			isAnalyzable = false;
-			return null;
+			return -1;
 		}
 	}
-	
-	private void handelIPV4() {
+
+	private int handelIPV4() {
 		int[] srcIpArray = new int[4];
 		int[] dstIpArray = new int[4];
-		//the IP header size is at the 14 byte and its the length of the header in 32-bit words.
+		//the IP header size is at the 14 byte, and it`s the length of the header in 32-bit words.
 		int ipHeaderSize = 4 * ( pcapByteBuffer.get(14) & 0x0f);
 
-		this.protocol = checkProtocol(pcapByteBuffer.get(23));
-
+		protocol = checkProtocol(pcapByteBuffer.get(23));
 		srcIpArray[0] = pcapByteBuffer.get(26) & 0xff;
 		srcIpArray[1] = pcapByteBuffer.get(27) & 0xff;
 		srcIpArray[2] = pcapByteBuffer.get(28) & 0xff;
 		srcIpArray[3] = pcapByteBuffer.get(29) & 0xff;
-
-		dstIpArray[0] =  pcapByteBuffer.get(30) & 0xff;
-		dstIpArray[1] =  pcapByteBuffer.get(31) & 0xff;
-		dstIpArray[2] =  pcapByteBuffer.get(32) & 0xff;
-		dstIpArray[3] =  pcapByteBuffer.get(33) & 0xff;
-		srcIp = 	String.format("%x.%x.%x.%x",srcIpArray[0],srcIpArray[1],srcIpArray[2],srcIpArray[3]);
-		dstIp = 	String.format("%x.%x.%x.%x",dstIpArray[0],dstIpArray[1],dstIpArray[2],dstIpArray[3]);
-
+		dstIpArray[0] = pcapByteBuffer.get(30) & 0xff;
+		dstIpArray[1] = pcapByteBuffer.get(31) & 0xff;
+		dstIpArray[2] = pcapByteBuffer.get(32) & 0xff;
+		dstIpArray[3] = pcapByteBuffer.get(33) & 0xff;
+		srcIp = 	String.format("%d.%d.%d.%d",srcIpArray[0],srcIpArray[1],srcIpArray[2],srcIpArray[3]);
+		dstIp = 	String.format("%d.%d.%d.%d",dstIpArray[0],dstIpArray[1],dstIpArray[2],dstIpArray[3]);
+		return ipHeaderSize;
 	}
 
-	private void handelIPV6() {
+	private int handelIPV6() {
 		int[] srcIpArray = new int[8];
 		int[] dstIpArray = new int[8];
-		//TODO fix the length of the ipv6 header
+		//TODO calculate the correct length(can be changed because of Extension Headers)
 		int ipHeaderSize = 40;
 
-		this.protocol =  checkProtocol(pcapByteBuffer.get(16));
-
+		protocol =  checkProtocol(pcapByteBuffer.get(20));
 		srcIpArray[0] = pcapByteBuffer.getShort(22) & 0xffff;
 		srcIpArray[1] = pcapByteBuffer.getShort(24) & 0xffff;
 		srcIpArray[2] = pcapByteBuffer.getShort(26) & 0xffff;
@@ -121,6 +127,7 @@ public class Packet {
 		dstIpArray[7] = pcapByteBuffer.getShort(52) & 0xffff;
 		dstIp = String.format("%x:%x:%x:%x:%x:%x:%x:%x",
 				dstIpArray[0],dstIpArray[1],dstIpArray[2],dstIpArray[3],dstIpArray[4],dstIpArray[5],dstIpArray[6],dstIpArray[7]);
+		return ipHeaderSize;
 	}
 
 	private String checkProtocol(byte protocol) {
@@ -133,11 +140,11 @@ public class Packet {
 			return null;
 		}
 	}
-	
-	public long getTimeStamp() {
-		return timeStamp;
+
+	public Instant getTimeStamp() {
+		return instantPacketTime;
 	}
-	
+
 	public byte[] getHeader() {
 		return header;
 	}
@@ -151,19 +158,35 @@ public class Packet {
 	}
 
 	public String getPacketKey1() {
-
-		return null;
+		return key1;
 	}
-	
+
 	public String getPacketKey2() {
-		// TODO Auto-generated method stub
-		return null;
+		return key2;
 	}
 
 	public boolean isAnalyzeable() {
-		// TODO Auto-generated method stub
 		return isAnalyzable;
 	}
 
+	public String getSrcIp() {
+		return srcIp;
+	}
+
+	public String getDstIp() {
+		return dstIp;
+	}
+
+	public String getSrcPort() {
+		return srcPort;
+	}
+
+	public String getDstPort() {
+		return dstPort;
+	}
+
+	public String getProtocol() {
+		return protocol;
+	}
 
 }
