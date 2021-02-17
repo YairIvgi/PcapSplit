@@ -6,8 +6,11 @@ public class Main {
 //		String timeOutString = args[2];
 //		long timeout = Long.valueOf(timeOutString);
 		
-		String inputFilePath = "C:\\temp\\Pcap_Split\\sampels\\sample_2.pcap";
-		String outDiractory = "C:\\temp\\Pcap_Split\\sampels\\output"; 
+		//arbitrary file path - used for tests
+		
+		String inputFilePath = "C:\\temp\\Pcap_Split\\samples\\sample_3.pcap";
+		String outDiractory = "C:\\temp\\Pcap_Split\\samples\\sample_3"; 
+
 		//time out is milliseconds
 		long timeOut = (long) 4000 ;
 

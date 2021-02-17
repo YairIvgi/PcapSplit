@@ -39,7 +39,7 @@ public class Handelr {
 		this.outDiractory = outDiractory;
 		mapOfSessions = new HashMap<String, Session>();
 	}
-	
+
 	//this is the method that analyze the pcap file
 	public void analyze(long timeOut) throws Exception {
 		this.timeOut = timeOut;
@@ -57,6 +57,7 @@ public class Handelr {
 		}else {
 			throw new Exception("NOT A PCAP FILE");
 		}
+		
 		//order the ByteBuffer in BIG_ENDIAN or LITTLE_ENDIAN according to the magic number
 		setByteOrder(pcapByteBuffer);
 		// go to the protocol specification 
@@ -78,7 +79,7 @@ public class Handelr {
 			if(di.available() < packetHeader.length) {
 				break;
 			}
-			
+
 			di.read(packetHeader);
 			//the header of the packet
 			pcapByteBuffer = ByteBuffer.wrap(packetHeader);
@@ -92,6 +93,7 @@ public class Handelr {
 			di.read(packetData,0,dataSize);
 			handlePacket(packetHeader,packetData,isBigIndean);
 		}
+		
 		//after all the sessions was analyzed we close the new pacp that was created and print the file values to the csv 
 		for(Map.Entry<String, Session> entry: mapOfSessions.entrySet()) {
 			Session session = entry.getValue();
@@ -103,7 +105,7 @@ public class Handelr {
 		di.close();
 		csvOs.close();
 	} 
-	
+
 	//this method go`s into the packet data and analyze it
 	private void handlePacket(byte[] packetHeader, byte[] packetData, boolean isBigIndean) throws Exception {
 		Packet packet = new Packet(packetHeader,packetData,isBigIndean);
@@ -125,7 +127,7 @@ public class Handelr {
 				}
 				mapOfSessions.put(key1, session);
 				mapOfSessions.put(key2, session);
-				//if session exists in the map , check the time out value
+				//if session exists in the map , check the timeout value - if timeout happen then close session and start a new one.
 			}else if(packetTime.minusMillis(timeOut).isAfter(session.getLestPacketTime()) ){
 				printSessionToCSV(session);
 				session.close();
@@ -134,10 +136,11 @@ public class Handelr {
 				session.addPacket(packet);
 				mapOfSessions.replace(key1, session);
 				mapOfSessions.replace(key2, session);
-			}
-			else{
+				//if timeout didn't happen then - add packet.
+			}else{
 				session.addPacket(packet);
 			}
+			//in case the session is not (IPV4 or IPV6) and (TCP or UDP) - add packet to the "not processed session"
 		}else {
 			sessionNotProcesset.addPacket(packet);
 		}
@@ -150,7 +153,7 @@ public class Handelr {
 			bb.order(ByteOrder.LITTLE_ENDIAN);
 		}
 	}
-	
+
 	//create the CSV file and write the headline
 	private void createCSV() throws Exception {
 		String csvheadLine = String.format("%s,%s,%s,%s,%s,%s,%s,%s,%s,%s","file-number", "src-ip","src-port","dst-ip","dst-port"," ip-protocol",

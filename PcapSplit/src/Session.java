@@ -14,29 +14,29 @@ public class Session {
 	private Instant sessionStartTime;
 	private int numOfPacketsInSession;
 	private int numOfByetsInSession;
-	
+
 	private String srcIp;
 	private String dstIp;
 	private String srcPort;
 	private String dstPort;
 	private String protocol;
 	private int fileNumber;
-	
-	//Contractor of session , open new pcap file
+
+	//Constructor of session , open new pcap file 
 	public Session(String outDiractory, byte[] pcapHeader,int counter) throws IOException {
 		isClosed = false;
-		sessionStartTime = null;
+		sessionStartTime = null; 
 		fileNumber = counter;
-		 File directory = new File(outDiractory);
-		    if (! directory.exists()){
-		        directory.mkdir();
-		    }
+		File directory = new File(outDiractory);
+		if (! directory.exists()){
+			directory.mkdir();
+		}
 		outputFile = new File(outDiractory+"\\"+counter+".pcap");
 		fo = new FileOutputStream(outputFile);
 		os = new DataOutputStream(fo);
 		os.write(pcapHeader);
 	}
-	
+
 	//method to add packet to the session
 	public void addPacket(Packet packet) throws IOException {
 		if(sessionStartTime == null) {
@@ -54,48 +54,54 @@ public class Session {
 		numOfPacketsInSession++;
 		numOfByetsInSession+=dataSize;
 	}
-	
+
 	public boolean isClosed() {
 		return isClosed;
 	}
+	
 	public void close() throws IOException {
 		os.close();
 		isClosed = true;
 	}
-	
+
 	public Instant getLestPacketTime() {
 		return lestPacketTime;
 	}
-	
+
 	public Instant getSessionStartTime() {
 		return sessionStartTime;
 	}
-	
+
 	public int getNumOfByetsInSession() {
 		return numOfByetsInSession;
 	}
-	
+
 	public int getNumOfPacketsInSession() {
 		return numOfPacketsInSession;
 	}
-	
+
 	public String getSrcIp() {
 		return srcIp;
 	}
+	
 	public String getDstIp() {
 		return dstIp;
 	}
+	
 	public String getSrcPort() {
 		return srcPort;
 	}
+	
 	public String getDstPort() {
 		return dstPort;
 	}
+	
 	public String getProtocol() {
 		return protocol;
 	}
+	
 	public int getFileNumber() {
 		return fileNumber;
 	}
-	
+
 }

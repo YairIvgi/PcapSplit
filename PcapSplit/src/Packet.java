@@ -39,13 +39,13 @@ public class Packet {
 
 	private void setValuesFromData() {
 		pcapByteBuffer = ByteBuffer.wrap(this.header);
-		
+
 		if(this.isBigEndian) {
 			pcapByteBuffer.order(ByteOrder.BIG_ENDIAN);
 		}else {
 			pcapByteBuffer.order(ByteOrder.LITTLE_ENDIAN);
 		}
-		
+
 		//get the time and cast is to long perspective
 		long timeSeconds = pcapByteBuffer.getInt(0);
 		long timeMicro = pcapByteBuffer.getInt(4)& 0xffffffff;
@@ -102,7 +102,7 @@ public class Packet {
 		dstIp = 	String.format("%d.%d.%d.%d",dstIpArray[0],dstIpArray[1],dstIpArray[2],dstIpArray[3]);
 		return ipHeaderSize;
 	}
-	
+
 	//read and cast the ipv6 srcIp and dstIp (its 16 bytes per address)
 	private int handelIPV6() {
 		int[] srcIpArray = new int[8];
