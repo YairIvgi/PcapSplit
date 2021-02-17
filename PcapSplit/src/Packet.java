@@ -37,7 +37,6 @@ public class Packet {
 		}
 	}
 
-
 	private void setValuesFromData() {
 		pcapByteBuffer = ByteBuffer.wrap(this.header);
 		//get the time
@@ -49,7 +48,7 @@ public class Packet {
 		long timeSeconds = pcapByteBuffer.getInt(0);
 		long timeMicro = pcapByteBuffer.getInt(4)& 0xffffffff;
 		instantPacketTime = Instant.ofEpochSecond( timeSeconds , timeMicro );
-		//get the size of data 
+		//get the size of the packet data in bytes 
 		this.dataSize = pcapByteBuffer.getInt(8);
 		this.pcapByteBuffer = ByteBuffer.wrap(data, 0, dataSize);
 		//get the ip protocol type

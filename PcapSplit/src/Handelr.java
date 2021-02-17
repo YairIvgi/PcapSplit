@@ -94,7 +94,8 @@ public class Handelr {
 				session.close(); 
 			}
 		}
-
+		di.close();
+		csvOs.close();
 	} 
 
 	private void handlePacket(byte[] packetHeader, byte[] packetData, boolean isBigIndean) throws Exception {
@@ -116,8 +117,6 @@ public class Handelr {
 				mapOfSessions.put(key2, session);
 			}else if(packetTime.minusMillis(timeOut).isAfter(session.getLestPacketTime()) ){
 
-				//mapOfSessions.remove(key1);
-				//mapOfSessions.remove(key2);
 				printSessionToCSV(session);
 				session.close();
 				sessionCounter++;
@@ -161,11 +160,6 @@ public class Handelr {
 				session.getDstIp(),session.getDstPort(),session.getProtocol(),startTime,endTime,session.getNumOfPacketsInSession(),
 				session.getNumOfByetsInSession());
 		csvOs.writeChars(line);
-	}
-
-	public void closeFile() throws IOException {
-		di.close();
-		csvOs.close();
 	}
 
 }
