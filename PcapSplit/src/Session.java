@@ -22,6 +22,7 @@ public class Session {
 	private String protocol;
 	private int fileNumber;
 	
+	//Contractor of session , open new pcap file
 	public Session(String outDiractory, byte[] pcapHeader,int counter) throws IOException {
 		isClosed = false;
 		sessionStartTime = null;
@@ -35,6 +36,8 @@ public class Session {
 		os = new DataOutputStream(fo);
 		os.write(pcapHeader);
 	}
+	
+	//method to add packet to the session
 	public void addPacket(Packet packet) throws IOException {
 		if(sessionStartTime == null) {
 			sessionStartTime = packet.getTimeStamp();

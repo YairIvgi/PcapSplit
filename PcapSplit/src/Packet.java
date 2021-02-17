@@ -39,14 +39,17 @@ public class Packet {
 
 	private void setValuesFromData() {
 		pcapByteBuffer = ByteBuffer.wrap(this.header);
-		//get the time
+		
 		if(this.isBigEndian) {
 			pcapByteBuffer.order(ByteOrder.BIG_ENDIAN);
 		}else {
 			pcapByteBuffer.order(ByteOrder.LITTLE_ENDIAN);
 		}
+		
+		//get the time and cast is to long perspective
 		long timeSeconds = pcapByteBuffer.getInt(0);
 		long timeMicro = pcapByteBuffer.getInt(4)& 0xffffffff;
+		//create Instant , easer to work with
 		instantPacketTime = Instant.ofEpochSecond( timeSeconds , timeMicro );
 		//get the size of the packet data in bytes 
 		this.dataSize = pcapByteBuffer.getInt(8);
@@ -62,11 +65,12 @@ public class Packet {
 	}
 
 	private void setPorts(int ipHeaderSize) {
+		//get the ports using 14+ ipheadersize , 14 is the ETHERNET-protocol byte size 
 		srcPort = String.valueOf(pcapByteBuffer.getShort(14+ipHeaderSize) & 0xffff);
 		dstPort = String.valueOf(pcapByteBuffer.getShort(16+ipHeaderSize) & 0xffff);
 	}
 
-	//analyze the ip layer and return the ip layer header size
+	//return the ip layer header size
 	private int setProtocolType(int ipProtocolType) {
 		if(ipProtocolType == IPV4) {
 			return handelIPV4();
@@ -78,10 +82,11 @@ public class Packet {
 		}
 	}
 
+	//read and cast the ipv4 srcIp and dstIp (its 4 bytes per address)
 	private int handelIPV4() {
 		int[] srcIpArray = new int[4];
 		int[] dstIpArray = new int[4];
-		//the IP header size is at the 14 byte, and it`s the length of the header in 32-bit words.
+		//the IP header size is at the 14 byte, and it`s the length of the header in 32-bit words. i.e (4 bytes *5)
 		int ipHeaderSize = 4 * ( pcapByteBuffer.get(14) & 0x0f);
 
 		protocol = checkProtocol(pcapByteBuffer.get(23));
@@ -97,7 +102,8 @@ public class Packet {
 		dstIp = 	String.format("%d.%d.%d.%d",dstIpArray[0],dstIpArray[1],dstIpArray[2],dstIpArray[3]);
 		return ipHeaderSize;
 	}
-
+	
+	//read and cast the ipv6 srcIp and dstIp (its 16 bytes per address)
 	private int handelIPV6() {
 		int[] srcIpArray = new int[8];
 		int[] dstIpArray = new int[8];
@@ -129,6 +135,7 @@ public class Packet {
 		return ipHeaderSize;
 	}
 
+	//the number that represents TCP is 6 and UDP its 17
 	private String checkProtocol(byte protocol) {
 		if(protocol == 6) {
 			return "TCP";
