@@ -102,6 +102,7 @@ public class Handelr {
 				session.close(); 
 			}
 		}
+		sessionNotProcesset.close();
 		di.close();
 		csvOs.close();
 	} 
@@ -156,7 +157,7 @@ public class Handelr {
 
 	//create the CSV file and write the headline
 	private void createCSV() throws Exception {
-		String csvheadLine = String.format("%s,%s,%s,%s,%s,%s,%s,%s,%s,%s","file-number", "src-ip","src-port","dst-ip","dst-port"," ip-protocol",
+		String csvheadLine = String.format("%s,%s,%s,%s,%s,%s,%s,%s,%s,%s","file-number", "src-ip","src-port","dst-ip","dst-port","ip-protocol",
 				"start-time","end-time","number-of-packets","number-of-bytes-in-session\n");
 		File directory = new File(outDiractory);
 		if (! directory.exists()){
