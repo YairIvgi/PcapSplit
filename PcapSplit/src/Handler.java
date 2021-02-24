@@ -96,56 +96,38 @@ public class Handler {
 			di.read(packetData,0,dataSize);
 			handlePacket(packetHeader,packetData,isBigIndean);
 		}
-		
-		//after all the sessions was analyzed we close the new pacp that was created and print the file values to the csv 
-		for(Map.Entry<String, Session> entry: mapOfSessions.entrySet()) {
-			Session session = entry.getValue();
-			if(!session.isClosed()) {
-				printSessionToCSV(session);
-				session.close(); 
-			}
-		}
-		sessionNotProcesset.close();
-		di.close();
-		csvOs.close();
-	} 
 
+	} 
+	
 	//this method go`s into the packet data and analyze it
 	private void handlePacket(byte[] packetHeader, byte[] packetData, boolean isBigIndean) throws Exception {
 		Packet packet = new Packet(packetHeader,packetData,isBigIndean);
 		//checks if the packet has IPV4 or IPV6 and TCP or UDP
 		if(packet.isAnalyzeable()) {
-			//each session is bidirectional so its simpler to just save both ways to the same session 
-			String key1 = packet.getPacketKey1();
-			String key2 = packet.getPacketKey2();
+			String key = packet.getPacketKey();
 			Instant packetTime = packet.getTimeStamp();
-			Session session = mapOfSessions.get(key1);
+			Session session = mapOfSessions.get(key);
 			//if session is null create new session
 			if(session == null ) {
 				try {
 					sessionCounter++;
 					session = new Session(outDiractory, pcapHeader,sessionCounter);
-					session.addPacket(packet);
 				} catch (IOException e) {
 					System.err.println("problem in creating new session");
 				}
-				mapOfSessions.put(key1, session);
-				mapOfSessions.put(key2, session);
+				mapOfSessions.put(key, session);
 				//if session exists in the map , check the timeout value - if timeout happen then close session and start a new one.
 			}else if(packetTime.minusMillis(timeOut).isAfter(session.getLestPacketTime()) ){
 				printSessionToCSV(session);
 				session.close();
 				sessionCounter++;
 				session = new Session(outDiractory, pcapHeader,sessionCounter);
-				session.addPacket(packet);
-				mapOfSessions.replace(key1, session);
-				mapOfSessions.replace(key2, session);
-				//if timeout didn't happen then - add packet.
-			}else{
-				session.addPacket(packet);
+				mapOfSessions.replace(key, session);
 			}
-			//in case the session is not (IPV4 or IPV6) and (TCP or UDP) - add packet to the "not processed session"
-		}else {
+				session.addPacket(packet);
+		}
+		//in case the session is not (IPV4 or IPV6) and (TCP or UDP) - add packet to the "not processed session"		
+		else {
 			sessionNotProcesset.addPacket(packet);
 		}
 	}
@@ -174,12 +156,21 @@ public class Handler {
 	
 	//writes formated values of a session
 	private void printSessionToCSV(Session session) throws Exception {
-		String startTime = session.getSessionStartTime().toString();
-		String endTime = session.getLestPacketTime().toString();
-		String line = String.format("%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n",session.getFileNumber(), session.getSrcIp(),session.getSrcPort(),
-				session.getDstIp(),session.getDstPort(),session.getProtocol(),startTime,endTime,session.getNumOfPacketsInSession(),
-				session.getNumOfByetsInSession());
-		csvOs.writeChars(line);
+		csvOs.writeChars(session.getValues());
+	}
+	
+	//after all the sessions was analyzed we close the new pacp that was created and print the file values to the csv 
+	public void close() throws Exception {		
+		for(Map.Entry<String, Session> entry: mapOfSessions.entrySet()) {
+			Session session = entry.getValue();
+			if(!session.isClosed()) {
+				printSessionToCSV(session);
+				session.close(); 
+			}
+		}
+		sessionNotProcesset.close();
+		di.close();
+		csvOs.close();
 	}
 
 }

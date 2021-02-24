@@ -7,14 +7,15 @@ public class Main {
 		//		long timeout = Long.valueOf(timeOutString);
 
 		//arbitrary file path - used for tests
-		String inputFilePath = "C:\\temp\\Pcap_Split\\samples\\sample_3.pcap";
-		String outDiractory = "C:\\temp\\Pcap_Split\\samples\\sample_3"; 
+		String inputFilePath = "C:\\temp\\Pcap_Split\\samples\\sample_1.pcap";
+		String outDiractory = "C:\\temp\\Pcap_Split\\samples\\sample_1"; 
 
 		//time out is milliseconds
 		long timeOut = (long) 4000 ;
 
 		Handler pcaphandler = new Handler(inputFilePath, outDiractory); 
 		pcaphandler.analyze(timeOut);
+		pcaphandler.close();
 
 	}
 }

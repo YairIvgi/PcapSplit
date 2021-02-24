@@ -71,37 +71,12 @@ public class Session {
 	public Instant getSessionStartTime() {
 		return sessionStartTime;
 	}
-
-	public int getNumOfByetsInSession() {
-		return numOfByetsInSession;
-	}
-
-	public int getNumOfPacketsInSession() {
-		return numOfPacketsInSession;
-	}
-
-	public String getSrcIp() {
-		return srcIp;
-	}
 	
-	public String getDstIp() {
-		return dstIp;
+	public String getValues() {
+		String startTime = sessionStartTime.toString();
+		String endTime = lestPacketTime.toString();
+		String line = String.format("%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n",fileNumber,srcIp,srcPort,
+				dstIp,dstPort,protocol,startTime,endTime,numOfPacketsInSession,numOfByetsInSession);
+		return line;
 	}
-	
-	public String getSrcPort() {
-		return srcPort;
-	}
-	
-	public String getDstPort() {
-		return dstPort;
-	}
-	
-	public String getProtocol() {
-		return protocol;
-	}
-	
-	public int getFileNumber() {
-		return fileNumber;
-	}
-
 }

@@ -6,6 +6,8 @@ public class Packet {
 
 	static final int IPV4 = 0x0800;
 	static final int IPV6 = 0x86DD;
+	static final int byteHex = 0xff;
+	static final int shortHex = 0xffff;
 
 	private boolean isBigEndian;
 	private boolean isAnalyzable;
@@ -13,12 +15,9 @@ public class Packet {
 	private byte[] data;
 	private ByteBuffer pcapByteBuffer;
 	private int dataSize;
-
 	private Instant instantPacketTime;
 
 	private String key1;
-	private String key2;
-
 	private String srcIp;
 	private String dstIp;
 	private String srcPort;
@@ -32,8 +31,13 @@ public class Packet {
 		isAnalyzable = true;
 		setValuesFromData();
 		if(isAnalyzable) {
-			key1 = protocol+srcIp+dstIp+srcPort+dstPort;
-			key2 = protocol+dstIp+srcIp+dstPort+srcPort;
+			key1 = protocol;
+			if(srcIp.compareTo(dstIp)>0) {
+				key1 = key1+dstIp+srcIp+dstPort+srcPort;
+			}else {
+				key1 = key1+srcIp+dstIp+srcPort+dstPort;
+
+			}
 		}
 	}
 
@@ -55,7 +59,7 @@ public class Packet {
 		dataSize = pcapByteBuffer.getInt(8);
 		pcapByteBuffer = ByteBuffer.wrap(data, 0, dataSize);
 		//get the ip protocol type
-		int ipProtocolType = pcapByteBuffer.getShort(12) & 0xffff;
+		int ipProtocolType = pcapByteBuffer.getShort(12) & shortHex;
 		int ipHeaderSize = setProtocolType(ipProtocolType);
 		//if the protocol is not TCP or UDP return and stop analyzing
 		if(ipHeaderSize == -1) {
@@ -66,8 +70,8 @@ public class Packet {
 
 	private void setPorts(int ipHeaderSize) {
 		//get the ports using 14+ ipheadersize , 14 is the ETHERNET-protocol byte size 
-		srcPort = String.valueOf(pcapByteBuffer.getShort(14+ipHeaderSize) & 0xffff);
-		dstPort = String.valueOf(pcapByteBuffer.getShort(16+ipHeaderSize) & 0xffff);
+		srcPort = String.valueOf(pcapByteBuffer.getShort(14+ipHeaderSize) & shortHex);
+		dstPort = String.valueOf(pcapByteBuffer.getShort(16+ipHeaderSize) & shortHex);
 	}
 
 	//return the ip layer header size
@@ -90,14 +94,14 @@ public class Packet {
 		int ipHeaderSize = 4 * ( pcapByteBuffer.get(14) & 0x0f);
 
 		protocol = checkProtocol(pcapByteBuffer.get(23));
-		srcIpArray[0] = pcapByteBuffer.get(26) & 0xff;
-		srcIpArray[1] = pcapByteBuffer.get(27) & 0xff;
-		srcIpArray[2] = pcapByteBuffer.get(28) & 0xff;
-		srcIpArray[3] = pcapByteBuffer.get(29) & 0xff;
-		dstIpArray[0] = pcapByteBuffer.get(30) & 0xff;
-		dstIpArray[1] = pcapByteBuffer.get(31) & 0xff;
-		dstIpArray[2] = pcapByteBuffer.get(32) & 0xff;
-		dstIpArray[3] = pcapByteBuffer.get(33) & 0xff;
+		srcIpArray[0] = pcapByteBuffer.get(26) & byteHex;
+		srcIpArray[1] = pcapByteBuffer.get(27) & byteHex;
+		srcIpArray[2] = pcapByteBuffer.get(28) & byteHex;
+		srcIpArray[3] = pcapByteBuffer.get(29) & byteHex;
+		dstIpArray[0] = pcapByteBuffer.get(30) & byteHex;
+		dstIpArray[1] = pcapByteBuffer.get(31) & byteHex;
+		dstIpArray[2] = pcapByteBuffer.get(32) & byteHex;
+		dstIpArray[3] = pcapByteBuffer.get(33) & byteHex;
 		srcIp = 	String.format("%d.%d.%d.%d",srcIpArray[0],srcIpArray[1],srcIpArray[2],srcIpArray[3]);
 		dstIp = 	String.format("%d.%d.%d.%d",dstIpArray[0],dstIpArray[1],dstIpArray[2],dstIpArray[3]);
 		return ipHeaderSize;
@@ -109,27 +113,26 @@ public class Packet {
 		int[] dstIpArray = new int[8];
 		//TODO calculate the correct length(can be changed because of Extension Headers)
 		int ipHeaderSize = 40;
-
 		protocol =  checkProtocol(pcapByteBuffer.get(20));
-		srcIpArray[0] = pcapByteBuffer.getShort(22) & 0xffff;
-		srcIpArray[1] = pcapByteBuffer.getShort(24) & 0xffff;
-		srcIpArray[2] = pcapByteBuffer.getShort(26) & 0xffff;
-		srcIpArray[3] = pcapByteBuffer.getShort(28) & 0xffff;
-		srcIpArray[4] = pcapByteBuffer.getShort(30) & 0xffff;
-		srcIpArray[5] = pcapByteBuffer.getShort(32) & 0xffff;
-		srcIpArray[6] = pcapByteBuffer.getShort(34) & 0xffff;
-		srcIpArray[7] = pcapByteBuffer.getShort(36) & 0xffff;
+		srcIpArray[0] = pcapByteBuffer.getShort(22) & shortHex;
+		srcIpArray[1] = pcapByteBuffer.getShort(24) & shortHex;
+		srcIpArray[2] = pcapByteBuffer.getShort(26) & shortHex;
+		srcIpArray[3] = pcapByteBuffer.getShort(28) & shortHex;
+		srcIpArray[4] = pcapByteBuffer.getShort(30) & shortHex;
+		srcIpArray[5] = pcapByteBuffer.getShort(32) & shortHex;
+		srcIpArray[6] = pcapByteBuffer.getShort(34) & shortHex;
+		srcIpArray[7] = pcapByteBuffer.getShort(36) & shortHex;
 		srcIp = String.format("%x:%x:%x:%x:%x:%x:%x:%x",
 				srcIpArray[0],srcIpArray[1],srcIpArray[2],srcIpArray[3],srcIpArray[4],srcIpArray[5],srcIpArray[6],srcIpArray[7]);
 
-		dstIpArray[0] = pcapByteBuffer.getShort(38) & 0xffff;
-		dstIpArray[1] = pcapByteBuffer.getShort(40) & 0xffff;
-		dstIpArray[2] = pcapByteBuffer.getShort(42) & 0xffff;
-		dstIpArray[3] = pcapByteBuffer.getShort(44) & 0xffff;
-		dstIpArray[4] = pcapByteBuffer.getShort(46) & 0xffff;
-		dstIpArray[5] = pcapByteBuffer.getShort(48) & 0xffff;
-		dstIpArray[6] = pcapByteBuffer.getShort(50) & 0xffff;
-		dstIpArray[7] = pcapByteBuffer.getShort(52) & 0xffff;
+		dstIpArray[0] = pcapByteBuffer.getShort(38) & shortHex;
+		dstIpArray[1] = pcapByteBuffer.getShort(40) & shortHex;
+		dstIpArray[2] = pcapByteBuffer.getShort(42) & shortHex;
+		dstIpArray[3] = pcapByteBuffer.getShort(44) & shortHex;
+		dstIpArray[4] = pcapByteBuffer.getShort(46) & shortHex;
+		dstIpArray[5] = pcapByteBuffer.getShort(48) & shortHex;
+		dstIpArray[6] = pcapByteBuffer.getShort(50) & shortHex;
+		dstIpArray[7] = pcapByteBuffer.getShort(52) & shortHex;
 		dstIp = String.format("%x:%x:%x:%x:%x:%x:%x:%x",
 				dstIpArray[0],dstIpArray[1],dstIpArray[2],dstIpArray[3],dstIpArray[4],dstIpArray[5],dstIpArray[6],dstIpArray[7]);
 		return ipHeaderSize;
@@ -163,12 +166,8 @@ public class Packet {
 		return dataSize;
 	}
 
-	public String getPacketKey1() {
+	public String getPacketKey() {
 		return key1;
-	}
-
-	public String getPacketKey2() {
-		return key2;
 	}
 
 	public boolean isAnalyzeable() {
