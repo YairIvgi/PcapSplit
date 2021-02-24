@@ -10,7 +10,7 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 
-public class Handelr {
+public class Handler {
 
 	private File pcapFile;
 	private FileInputStream fi;
@@ -27,7 +27,7 @@ public class Handelr {
 	private long timeOut;
 
 	//the contractor initialize variables
-	public Handelr(String inputFilePath ,String outDiractory) throws Exception {
+	public Handler(String inputFilePath ,String outDiractory) throws Exception {
 
 		pcapFile = new File(inputFilePath);
 		if (! pcapFile.isFile() || ! pcapFile.canRead()){
@@ -48,7 +48,10 @@ public class Handelr {
 		sessionNotProcesset = new Session(outDiractory,pcapHeader,sessionCounter);
 		//the header of pcap file
 		pcapByteBuffer = ByteBuffer.wrap(pcapHeader);
+		//int magic = pcapByteBuffer.getInt();
 		int magic = pcapByteBuffer.getInt();
+		
+		
 		// get the type if its BIG_ENDIAN or LITTLE_ENDIAN
 		if(magic == 0xa1b2c3d4) {
 			isBigIndean =true;
@@ -168,6 +171,7 @@ public class Handelr {
 		csvOs = new DataOutputStream(csvFo);
 		csvOs.writeChars(csvheadLine);
 	}
+	
 	//writes formated values of a session
 	private void printSessionToCSV(Session session) throws Exception {
 		String startTime = session.getSessionStartTime().toString();
