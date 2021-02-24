@@ -17,7 +17,7 @@ public class Packet {
 	private int dataSize;
 	private Instant instantPacketTime;
 
-	private String key1;
+	private String key;
 	private String srcIp;
 	private String dstIp;
 	private String srcPort;
@@ -31,11 +31,11 @@ public class Packet {
 		isAnalyzable = true;
 		setValuesFromData();
 		if(isAnalyzable) {
-			key1 = protocol;
+			key = protocol;
 			if(srcIp.compareTo(dstIp)>0) {
-				key1 = key1+dstIp+srcIp+dstPort+srcPort;
+				key = key+dstIp+srcIp+dstPort+srcPort;
 			}else {
-				key1 = key1+srcIp+dstIp+srcPort+dstPort;
+				key = key+srcIp+dstIp+srcPort+dstPort;
 
 			}
 		}
@@ -167,7 +167,7 @@ public class Packet {
 	}
 
 	public String getPacketKey() {
-		return key1;
+		return key;
 	}
 
 	public boolean isAnalyzeable() {
