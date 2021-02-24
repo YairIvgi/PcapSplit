@@ -49,11 +49,11 @@ public class Packet {
 		//get the time and cast is to long perspective
 		long timeSeconds = pcapByteBuffer.getInt(0);
 		long timeMicro = pcapByteBuffer.getInt(4)& 0xffffffff;
-		//create Instant , easer to work with
+		//create Instant , easier to work with
 		instantPacketTime = Instant.ofEpochSecond( timeSeconds , timeMicro );
 		//get the size of the packet data in bytes 
-		this.dataSize = pcapByteBuffer.getInt(8);
-		this.pcapByteBuffer = ByteBuffer.wrap(data, 0, dataSize);
+		dataSize = pcapByteBuffer.getInt(8);
+		pcapByteBuffer = ByteBuffer.wrap(data, 0, dataSize);
 		//get the ip protocol type
 		int ipProtocolType = pcapByteBuffer.getShort(12) & 0xffff;
 		int ipHeaderSize = setProtocolType(ipProtocolType);
