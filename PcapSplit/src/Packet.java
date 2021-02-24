@@ -85,7 +85,7 @@ public class Packet {
 			return -1;
 		}
 	}
-
+ 
 	//read and cast the ipv4 srcIp and dstIp (its 4 bytes per address)
 	private int handelIPV4() {
 		int[] srcIpArray = new int[4];
